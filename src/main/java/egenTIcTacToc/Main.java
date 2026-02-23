@@ -1,5 +1,7 @@
-package group;
-import java.util.*;
+package egenTIcTacToc;
+import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Main {
 
@@ -11,7 +13,7 @@ public class Main {
     static final char o = 'O';
     static final char empty = ' ';
 
-    // Weight
+    // Weight (number of winner-lines)
     static final int[][] WEIGHTS = {
             {3, 2, 3},
             {2, 4, 2},
@@ -21,41 +23,75 @@ public class Main {
     public static void main(String[] args) {
         // User Input with scanner
         Scanner sc = new Scanner(System.in);
-        String choice;
-        char finalChoice;
+        char choice;
+        int maxDepth;
 
-        //Choice of X or O
+        //Choices (x or o)
         while (true) {
             System.out.println("Choose X or O:");
+            String s = sc.nextLine().trim().toUpperCase();
 
-            // trim() removes spaces from etc. " x" to "x".
-            choice = sc.nextLine().trim().toUpperCase();
-
-            if (choice.equals("X") || choice.equals("O")) {
-                finalChoice = choice.charAt(0); //Takes first letter
+            if (s.equals("X") || s.equals("O")) {
+                choice = s.charAt(0);
                 break;
             }
-
             System.out.println("Invalid input. Try Again.");
         }
-        System.out.println("You chose " + choice);
+        // difficulty / depth
+        while (true) {
+            System.out.println("Choose AI search depth (1-9):");
+            String s = sc.nextLine().trim();
+            try {
+                maxDepth = Integer.parseInt(s);
+                if (maxDepth < 1 || maxDepth > 9) {
+                    System.out.println("Depth must be 1-9");
+                    continue;
+                }
+                break;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number");
+            }
+        }
+
+        int algorithmChoice;
+        while (true) {
+            System.out.println("Chooser AI algorithm:");
+            System.out.println("1 = MiniMax");
+            System.out.println("2 = Alpha-Beta Pruning");
+            String s = sc.nextLine().trim();
+            try {
+                algorithmChoice = Integer.parseInt(s);
+                if (algorithmChoice != 1 && algorithmChoice != 2) {
+                    System.out.println("Invalid input. Choose 1 or 2 only");
+                    continue;
+                }
+                break;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number");
+            }
+        }
+
+        boolean useAlphaBeta = (algorithmChoice == 2);
+
+        System.out.println("You chose " + choice + ", depth " + maxDepth +
+                ", algorithm: " + (useAlphaBeta ? "Alpha-Beta" : "MiniMax"));
         //_________________________________
 
         // AI and Human variables
-        char human = finalChoice;
-        char ai = (human == x) ? o : x;
-        char currentPlayer = x; // X starter typisk og currentPlayer styrer ALT
+        final char humanSymbol = choice;
+        final char aiSymbol = (humanSymbol == x) ? o : x;
+        char currentPlayer = x; // X starter typisk
         // ________________________________
 
 
         initBoard();
         boardOutput();
 
-        // mark for the player
+        // The game between Human and AI till winner or draw
         while (true) {
-            if (currentPlayer == human) {
+            if (currentPlayer == humanSymbol) {
                 System.out.println("Choose number to mark (1-9):");
-                String input = sc.nextLine().trim().toUpperCase();
+                String input = sc.nextLine().trim();
 
                 int move;
 
@@ -95,10 +131,14 @@ public class Main {
                 board[row][col] = currentPlayer;
             } else {
                 // AI Turn
-                System.out.println("Available moves: " + getAvailableMoves().size());
-                System.out.println("AI is thinking:");
-                int depth = 9; // should be changed by human's choice.
-                Move best = findBestMove(depth, human, ai);
+                System.out.println("AI is thinking (" + (useAlphaBeta ? "Alpha-Beta" : "Minimax") + "):");
+
+                Move best;
+                if (useAlphaBeta) {
+                   best = findBestMoveAlphaBeta(maxDepth, humanSymbol, aiSymbol);
+                } else {
+                    best = findBestMoveMinimax(maxDepth, humanSymbol, aiSymbol);
+                }
                 if (best != null) {
                     makeMove(best, currentPlayer); // current Player is AI here.
                 }
@@ -106,13 +146,6 @@ public class Main {
 
             // Print board ét gang pr. tur.
             boardOutput();
-
-            /* Terminal test
-            Integer t = evaluateTerminal(human, ai);
-            if (t != null) {
-                System.out.println("Terminal score = " + t);
-            }
-            */
 
             // Win/draw check
             if (checkWin(currentPlayer)) {
@@ -130,28 +163,10 @@ public class Main {
             // Switch player
             currentPlayer = (currentPlayer == x) ? o : x;
         }
-
-
-    }
-
-    // Random PC play style _______________
-    static final Random rnd = new Random();
-
-    public static void aiMoveRandom(char player) {
-        while (true) {
-            int move = rnd.nextInt(9) + 1; // 1..9
-            int row = (move - 1) / 3;
-            int col = (move - 1) % 3;
-
-            if (board[row][col] == empty) {
-                board[row][col] = player;
-                break;
-            }
-        }
     }
 
     // AI Available moves
-    static class Move {
+    public static class Move {
         int row, col;
         Move(int row, int col) {
             this.row = row;
@@ -179,17 +194,35 @@ public class Main {
         board[m.row][m.col] = empty;
     }
 
-    public static Integer evaluateTerminal(char human, char ai, int depth) {
-        if (checkWin(ai)) return 10 - depth; // AI vinder hurtigere = bedre
-        if (checkWin(human)) return -10 + depth; // Human vinder hurtigere = værre
+    // Evalutates__________________________
+    public static Integer evaluateTerminal(char human, char ai) {
+        if (checkWin(ai)) return 10; // AI vinder hurtigere = bedre
+        if (checkWin(human)) return -10; // Human vinder hurtigere = værre
         if (isBoardFull()) return 0; // Draw
         return null; // ikke terminal.
+    }
+
+    public static int evaluateBoard(char human, char ai) {
+        int score = 0;
+
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                if (board[r][c] == ai) {
+                    score += WEIGHTS[r][c];
+                } else if (board[r][c] == human) {
+                    score -= WEIGHTS[r][c];
+                }
+            }
+        }
+
+        return score;
     }
     //_____________________________________
 
     // Conditions _________________________
     // Winning for both AI and Human_______
     public static boolean checkWin(char p) {
+        // Note: [row][col]
         // Rows
         for (int r = 0; r < 3; r++) {
             if (board[r][0] == p && board[r][1] == p && board[r][2] == p) return true;
@@ -201,8 +234,10 @@ public class Main {
         }
 
         // Diagonals
-        if (board[0][0] == p && board[1][1] == p && board[2][2] == p) return true;
-        if (board[0][2] == p && board[1][1] == p && board[2][0] == p) return true;
+        if (
+                (board[0][0] == p && board[1][1] == p && board[2][2] == p) ||
+                (board[0][2] == p && board[1][1] == p && board[2][0] == p)
+        ) return true;
 
         return false;
     }
@@ -218,18 +253,20 @@ public class Main {
         }
     //_____________________________________
 
-    // Minimax_____________________________
+    // ___________Minimax__________________
     public static int minimax(int depth, boolean isMaximizing, char human, char ai) {
 
-        Integer terminal = evaluateTerminal(human, ai, depth); // Wrapper-class på et objekt der indeholder et tal
+        Integer terminal = evaluateTerminal(human, ai); // Wrapper-class på et objekt der indeholder et tal
         if (terminal != null) return terminal;
 
         // max search depth
-        if (depth == 0) return 0; // midlertidigt: "Ingen viden"
+        if (depth == 0) return evaluateBoard(human, ai); // midlertidigt: "Ingen viden"
 
         List<Move> moves = getAvailableMoves();
 
+        //MinMax udregning (hovedpunktet)
         if (isMaximizing) {
+            //MIN
             int bestScore = Integer.MIN_VALUE;
 
             for (Move m : moves) {
@@ -242,6 +279,7 @@ public class Main {
             return bestScore;
 
         } else {
+            //MAX
             int bestScore = Integer.MAX_VALUE;
 
             for (Move m : moves) {
@@ -256,7 +294,7 @@ public class Main {
     }
 
     // Find Best Move
-    public static Move findBestMove(int depth, char human, char ai) {
+    public static Move findBestMoveMinimax(int depth, char human, char ai) {
         int bestScore=Integer.MIN_VALUE;
         Move bestMove = null;
 
@@ -275,8 +313,72 @@ public class Main {
     }
     //_____________________________________
 
+    // _________Alpha-Beta Pruning_________
+    public static int alphabeta(int depth, boolean isMaximizing, char human, char ai, int alpha, int beta) {
 
+        Integer terminal = evaluateTerminal(human, ai);
+        if (terminal != null) return terminal;
 
+        if (depth == 0) return evaluateBoard(human, ai);
+
+        List<Move> moves = getAvailableMoves();
+
+        // ALPHABETA Pruning udregning (hovedpunktet)
+        if (isMaximizing) {
+            //MIN
+            int bestScore = Integer.MIN_VALUE;
+
+            for (Move m : moves) {
+                makeMove(m, ai);
+                int score = alphabeta(depth - 1, true, human, ai, alpha, beta);
+                undoMove(m);
+
+                if (score > bestScore) bestScore = score;
+                if (bestScore > alpha) alpha = bestScore;
+
+                if (alpha >= beta) break; // PRUNE
+            }
+            return bestScore;
+        } else {
+            //MAX
+            int bestScore = Integer.MAX_VALUE;
+
+            for (Move m : moves) {
+                makeMove(m, human);
+                int score = alphabeta(depth - 1, true, human, ai, alpha, beta);
+                undoMove(m);
+
+                if (score < bestScore) bestScore = score;
+                if (bestScore < beta) beta = bestScore;
+
+                if (alpha >= beta) break; // PRUNE
+            }
+            return bestScore;
+        }
+    }
+
+    public static Move findBestMoveAlphaBeta(int depth, char human, char ai) {
+        int bestScore = Integer.MIN_VALUE;
+        Move bestMove = null;
+
+        int alpha = Integer.MIN_VALUE;
+        int beta = Integer.MAX_VALUE;
+
+        for (Move m : getAvailableMoves()) {
+            makeMove(m, ai);
+            int score = alphabeta(depth - 1, true, human, ai, alpha, beta);
+            undoMove(m);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = m;
+            }
+
+            if (bestScore > alpha) alpha = bestScore; // root update helps prune
+        }
+        return bestMove;
+    }
+    //_____________________________________
 
     // Output of broad ____________________
     // Start state: Fill the broad with the empty-variabel
@@ -299,11 +401,8 @@ public class Main {
         int counter = 1;
 
         for (char[] chars : board) {
-
             System.out.print("|");
-
             for (char aChar : chars) {
-
                 if (aChar == empty) {
                     System.out.print(GREEN + counter + RESET);
                 } else if (aChar == x) {
@@ -311,7 +410,6 @@ public class Main {
                 } else if (aChar == o) {
                     System.out.print(BLUE + "O" + RESET);
                 }
-
                 counter++;
             }
             System.out.println();
@@ -321,3 +419,9 @@ public class Main {
 
     //_____________________________________
 }
+
+// MiniMax undersøger alt, også de dårlige.
+// Alpha/Beta Pruning gør præcis det samme som Minimax,
+// MEN det stopper med at undersøg grene, som den allerede ved er ligegyldige.
+// Den "klipper" (prunes) dele af træet væk (de dårlige muligheder)
+
