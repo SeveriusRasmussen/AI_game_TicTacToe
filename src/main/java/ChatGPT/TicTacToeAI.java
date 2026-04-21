@@ -15,7 +15,7 @@ public class TicTacToeAI {
             3, 2, 3
     };
 
-    static final int WIN_SCORE = 10_000; // big number for terminal wins
+    static final int WIN_SCORE = 10000; // big number for terminal wins
 
     // All winning lines (triples of indices)
     static final int[][] LINES = {
@@ -268,7 +268,10 @@ public class TicTacToeAI {
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
                 char ch = b[r * 3 + c];
-                System.out.print(" " + (ch == EMPTY ? (r * 3 + c + 1) : ch) + " ");
+                //System.out.print(" " + (ch == EMPTY ? (r * 3 + c + 1) : ch) + " ");
+                String cell = (ch == EMPTY) ? String.valueOf(r * 3 + c + 1) : String.valueOf(ch);
+                //System.out.print(" " + cell + " ");
+                System.out.print(" " + (ch == X ? "\u001B[31m" : ch == O ? "\u001B[34m" : "") + cell + "\u001B[0m" + " ");
                 if (c < 2) System.out.print("|");
             }
             System.out.println();

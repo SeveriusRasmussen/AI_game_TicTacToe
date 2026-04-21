@@ -9,8 +9,8 @@ public class Main {
     public static char[][] board = new char[3][3];
 
     // Variables for X, O and Empty
-    static final char x = 'X';
-    static final char o = 'O';
+    static final char X = 'X';
+    static final char O = 'O';
     static final char empty = ' ';
 
     // Weight (number of winner-lines)
@@ -79,8 +79,8 @@ public class Main {
 
         // AI and Human variables
         final char humanSymbol = choice;
-        final char aiSymbol = (humanSymbol == x) ? o : x;
-        char currentPlayer = x; // X starter typisk
+        final char aiSymbol = (humanSymbol == X) ? O : X;
+        char currentPlayer = X; // X starter typisk
         // ________________________________
 
 
@@ -161,7 +161,7 @@ public class Main {
             }
 
             // Switch player
-            currentPlayer = (currentPlayer == x) ? o : x;
+            currentPlayer = (currentPlayer == X) ? O : X;
         }
     }
 
@@ -406,9 +406,9 @@ public class Main {
             for (char aChar : chars) {
                 if (aChar == empty) {
                     System.out.print(GREEN + counter + RESET);
-                } else if (aChar == x) {
+                } else if (aChar == X) {
                     System.out.print(RED + "X" + RESET);
-                } else if (aChar == o) {
+                } else if (aChar == O) {
                     System.out.print(BLUE + "O" + RESET);
                 }
                 counter++;
