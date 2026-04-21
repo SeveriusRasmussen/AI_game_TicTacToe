@@ -165,7 +165,7 @@ public class Main {
         }
     }
 
-    // AI Available moves
+    // AI Available moves__________________
     public static class Move {
         int row, col;
         Move(int row, int col) {
@@ -193,6 +193,7 @@ public class Main {
     public static void undoMove(Move m) {
         board[m.row][m.col] = empty;
     }
+    //_____________________________________
 
     // Evalutates__________________________
     public static Integer evaluateTerminal(char human, char ai) {
@@ -243,7 +244,7 @@ public class Main {
     }
 
     // If the board is a draw
-        public static boolean isBoardFull() {
+    public static boolean isBoardFull() {
             for (char[] chars : board) {
                 for (char aChar : chars) {
                     if (aChar == empty) return false;
@@ -330,7 +331,7 @@ public class Main {
 
             for (Move m : moves) {
                 makeMove(m, ai);
-                int score = alphabeta(depth - 1, true, human, ai, alpha, beta);
+                int score = alphabeta(depth - 1, !isMaximizing, human, ai, alpha, beta);
                 undoMove(m);
 
                 if (score > bestScore) bestScore = score;
@@ -345,7 +346,7 @@ public class Main {
 
             for (Move m : moves) {
                 makeMove(m, human);
-                int score = alphabeta(depth - 1, true, human, ai, alpha, beta);
+                int score = alphabeta(depth - 1, !isMaximizing, human, ai, alpha, beta);
                 undoMove(m);
 
                 if (score < bestScore) bestScore = score;
